@@ -29,6 +29,10 @@ export default async function AdminDashboard() {
             <Link href="/" className="px-5 py-2 text-sm text-gray-700 font-semibold border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
               🌎 Ver Web Pública
             </Link>
+            {/* NUEVO BOTÓN: Acceso a la Bandeja de Cotizaciones */}
+            <Link href="/admin/cotizaciones" className="px-5 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-800 transition-colors font-bold shadow-md">
+              📥 Bandeja B2B
+            </Link>
             <Link href="/admin/nuevo" className="px-5 py-2 text-sm text-white bg-aerogas-red rounded-md hover:bg-red-700 transition-colors font-bold shadow-md">
               + Nueva Estación
             </Link>
