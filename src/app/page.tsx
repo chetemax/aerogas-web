@@ -1,19 +1,15 @@
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import MensajeExito from "../components/MensajeExito";
 import { pool } from "../lib/db";
+import { revalidatePath } from "next/cache";
 
-export default async function Home() {
-  // 1. Consultar la base de datos MySQL 
-  // Usamos GROUP_CONCAT para traer los servicios asociados en una sola fila separados por comas
+export default async function Home(props: { searchParams: Promise<{ exito?: string, cotizar?: string }> }) {
+  
   const [rows] = await pool.query(`
     SELECT 
-      e.id, 
-      e.nombre, 
-      e.direccion, 
-      e.ciudad, 
-      e.imagen, 
-      e.mapa_url,
+      e.id, e.nombre, e.direccion, e.ciudad, e.imagen, e.mapa_url,
       GROUP_CONCAT(s.nombre SEPARATOR ',') as servicios_str
     FROM estaciones e
     LEFT JOIN estacion_servicios es ON e.id = es.estacion_id
@@ -23,7 +19,6 @@ export default async function Home() {
     ORDER BY e.id ASC;
   `);
 
-  // 2. Formatear la cadena de servicios (ej: "GLP,Diésel") hacia un arreglo (["GLP", "Diésel"])
   const estaciones = (rows as any[]).map((row) => ({
     id: row.id,
     nombre: row.nombre,
@@ -34,9 +29,34 @@ export default async function Home() {
     servicios: row.servicios_str ? row.servicios_str.split(',') : [],
   }));
 
+  // Leemos los parámetros para saber si debemos abrir la ventana flotante
+  const searchParams = await props.searchParams;
+  const exito = searchParams?.exito === "true";
+  const abrirCotizador = searchParams?.cotizar === "true";
+  const mostrarModal = exito || abrirCotizador;
+
+  async function enviarCotizacion(formData: FormData) {
+    "use server";
+    const empresa = formData.get("empresa") as string;
+    const ruc = formData.get("ruc") as string;
+    const contacto = formData.get("contacto") as string;
+    const telefono = formData.get("telefono") as string;
+    const email = formData.get("email") as string;
+    const mensaje = formData.get("mensaje") as string;
+
+    await pool.query(
+      `INSERT INTO cotizaciones (empresa, ruc, contacto, telefono, email, mensaje) VALUES (?, ?, ?, ?, ?, ?)`,
+      [empresa, ruc, contacto, telefono, email, mensaje]
+    );
+
+    const { redirect } = await import("next/navigation");
+    revalidatePath("/");
+    // Al guardar, recargamos el modal pero en modo "éxito"
+    redirect("/?exito=true");
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center w-full overflow-x-hidden">
-      
       <Navbar />
 
       <section className="w-full bg-aerogas-gray flex flex-col justify-center items-center text-center py-24 px-4">
@@ -82,14 +102,7 @@ export default async function Home() {
                       </span>
                     ))}
                   </div>
-                  
-                  {/* Botón dinámico apuntando al mapa_url de la DB */}
-                  <a 
-                    href={estacion.mapa_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-full bg-aerogas-blue hover:bg-blue-900 text-white font-semibold py-3 rounded-lg transition-colors mt-auto text-center inline-block"
-                  >
+                  <a href={estacion.mapa_url} target="_blank" rel="noopener noreferrer" className="w-full bg-aerogas-blue hover:bg-blue-900 text-white font-semibold py-3 rounded-lg transition-colors mt-auto text-center inline-block">
                     Ver en Mapa
                   </a>
                 </div>
@@ -107,20 +120,13 @@ export default async function Home() {
               En Aerogas del Norte entendemos que tu negocio no puede detenerse. Contamos con una moderna flota de cisternas para garantizar el abastecimiento ininterrumpido de todas nuestras estaciones y clientes corporativos.
             </p>
             <ul className="space-y-4 mb-8">
-              <li className="flex items-center gap-3">
-                <span className="bg-aerogas-red p-2 rounded-full">✅</span>
-                <span className="font-semibold">Abastecimiento mayorista garantizado.</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="bg-aerogas-red p-2 rounded-full">✅</span>
-                <span className="font-semibold">Control de consumo exacto para flotas.</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="bg-aerogas-red p-2 rounded-full">✅</span>
-                <span className="font-semibold">Líneas de crédito corporativo disponibles.</span>
-              </li>
+              <li className="flex items-center gap-3"><span className="bg-aerogas-red p-2 rounded-full">✅</span><span className="font-semibold">Abastecimiento mayorista garantizado.</span></li>
+              <li className="flex items-center gap-3"><span className="bg-aerogas-red p-2 rounded-full">✅</span><span className="font-semibold">Control de consumo exacto para flotas.</span></li>
+              <li className="flex items-center gap-3"><span className="bg-aerogas-red p-2 rounded-full">✅</span><span className="font-semibold">Líneas de crédito corporativo disponibles.</span></li>
             </ul>
-            <Link href="#contacto" className="inline-block bg-white text-aerogas-blue font-bold px-8 py-3 rounded-lg hover:bg-gray-200 transition-colors shadow-lg">
+            
+            {/* BOTÓN ACTUALIZADO: Abre el modal sin hacer scroll */}
+            <Link href="/?cotizar=true" scroll={false} className="inline-block bg-white text-aerogas-blue font-bold px-8 py-3 rounded-lg hover:bg-gray-200 transition-colors shadow-lg">
               Solicitar Cotización B2B
             </Link>
           </div>
@@ -132,6 +138,69 @@ export default async function Home() {
 
       <Footer />
 
+      {/* =========================================
+          VENTANA EMERGENTE (MODAL DE COTIZACIÓN) 
+          ========================================= */}
+      {mostrarModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto relative p-8">
+            
+            {/* Botón Cerrar */}
+            <Link href="/" scroll={false} className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors">
+              ✕
+            </Link>
+
+            {exito ? (
+              <MensajeExito />
+            ) : (
+              <div>
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-extrabold text-aerogas-blue mb-2">Cotiza con Aerogas</h2>
+                  <p className="text-gray-600">Déjanos los datos de tu empresa y un ejecutivo se comunicará contigo.</p>
+                </div>
+                
+                <form action={enviarCotizacion} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Nombre de la Empresa *</label>
+                      <input type="text" name="empresa" required placeholder="Ej: Transportes del Norte" className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">RUC *</label>
+                      <input type="text" name="ruc" required maxLength={11} pattern="\d{11}" placeholder="Ej: 20123456789" className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Persona de Contacto *</label>
+                      <input type="text" name="contacto" required placeholder="Ej: Juan Pérez" className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Teléfono / Celular *</label>
+                      <input type="tel" name="telefono" required placeholder="Ej: 987654321" className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Correo Electrónico *</label>
+                    <input type="email" name="email" required placeholder="Ej: logistica@empresa.com" className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Detalles de la Solicitud (Opcional)</label>
+                    <textarea name="mensaje" rows={3} placeholder="Indícanos el tamaño de tu flota, consumo mensual estimado..." className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-aerogas-red outline-none transition-all"></textarea>
+                  </div>
+
+                  <button type="submit" className="w-full bg-aerogas-red hover:bg-red-700 text-white font-bold py-4 px-4 rounded-lg transition-transform transform hover:-translate-y-1 shadow-lg text-lg">
+                    Enviar Solicitud
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
