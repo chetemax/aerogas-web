@@ -7,7 +7,6 @@ import path from "path";
 
 export default async function NuevaEstacionPage() {
   
-  // Consultamos los servicios disponibles en MySQL para crear los checkboxes dinámicamente
   const [serviciosRows] = await pool.query("SELECT * FROM servicios ORDER BY id ASC");
   const serviciosDisponibles = serviciosRows as any[];
 
@@ -18,8 +17,13 @@ export default async function NuevaEstacionPage() {
     const direccion = formData.get("direccion") as string;
     const ciudad = formData.get("ciudad") as string;
     const mapa_url = formData.get("mapa_url") as string;
-    const imagenFile = formData.get("imagen") as File;
     
+    // Capturando los nuevos campos
+    const horario = formData.get("horario") as string;
+    const telefono_estacion = formData.get("telefono_estacion") as string;
+    const descripcion = formData.get("descripcion") as string;
+
+    const imagenFile = formData.get("imagen") as File;
     const serviciosSeleccionados = formData.getAll("servicios"); 
     
     let imagenUrl = "https://placehold.co/600x400/162865/FFFFFF?text=Sin+Imagen";
@@ -35,74 +39,82 @@ export default async function NuevaEstacionPage() {
       imagenUrl = `/uploads/${filename}`;
     }
 
+    // Consulta INSERT actualizada con las 8 columnas
     const [result] = await pool.query(
-      `INSERT INTO estaciones (nombre, direccion, ciudad, imagen, mapa_url) VALUES (?, ?, ?, ?, ?)`,
-      [nombre, direccion, ciudad, imagenUrl, mapa_url]
+      `INSERT INTO estaciones (nombre, direccion, ciudad, imagen, mapa_url, horario, telefono_estacion, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre, direccion, ciudad, imagenUrl, mapa_url, horario, telefono_estacion, descripcion]
     );
     
     const insertId = (result as any).insertId;
 
     if (serviciosSeleccionados.length > 0) {
       const valoresPivote = serviciosSeleccionados.map((servicioId) => [insertId, Number(servicioId)]);
-      
       await pool.query(
         `INSERT INTO estacion_servicios (estacion_id, servicio_id) VALUES ?`,
         [valoresPivote] 
       );
     }
 
-    // Actualizamos la memoria caché de ambas páginas
     revalidatePath("/");
     revalidatePath("/admin");
-    
-    // REDIRECCIÓN CORREGIDA: Volver al Dashboard
     redirect("/admin");
   }
 
   return (
     <main className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex justify-center items-start">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-xl p-8 border border-gray-200 my-8">
+      <div className="max-w-2xl w-full bg-white rounded-xl shadow-xl p-8 border border-gray-200 my-8">
         
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-extrabold text-aerogas-blue">Panel Aerogas</h1>
-          {/* ENLACE CORREGIDO: Volver a la Tabla */}
           <Link href="/admin" className="text-sm text-blue-600 hover:underline font-medium">Volver a la Tabla</Link>
         </div>
         
         <h2 className="text-lg font-bold text-gray-700 mb-6 border-b pb-2">Registrar Nueva Estación</h2>
 
-        <form action={agregarEstacion} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Estación</label>
-            <input type="text" name="nombre" required placeholder="Ej: Estación Pimentel Sur" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+        <form action={agregarEstacion} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Estación *</label>
+              <input type="text" name="nombre" required placeholder="Ej: Estación Pimentel Sur" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad / Distrito *</label>
+              <input type="text" name="ciudad" required placeholder="Ej: Nuevo Chimbote" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Dirección Exacta</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Dirección Exacta *</label>
             <input type="text" name="direccion" required placeholder="Ej: Av. Pacífico 123" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad / Distrito</label>
-            <input type="text" name="ciudad" required placeholder="Ej: Nuevo Chimbote" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Horario de Atención *</label>
+              <input type="text" name="horario" required defaultValue="Atención 24/7" placeholder="Ej: 6:00 am - 11:00 pm" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
+              <input type="tel" name="telefono_estacion" placeholder="Ej: 074-123456" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Enlace de Google Maps</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción Breve (Opcional)</label>
+            <textarea name="descripcion" rows={3} placeholder="Ej: Estación con patio de maniobras amplio para cisternas..." className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all"></textarea>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Enlace de Google Maps *</label>
             <input type="url" name="mapa_url" required placeholder="https://maps.app.goo.gl/..." className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Servicios Disponibles</label>
-            <div className="grid grid-cols-2 gap-3 p-3 border border-gray-300 rounded-md bg-gray-50">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 border border-gray-300 rounded-md bg-gray-50">
               {serviciosDisponibles.map((servicio) => (
                 <label key={servicio.id} className="flex items-center space-x-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    name="servicios" 
-                    value={servicio.id} 
-                    className="w-4 h-4 text-aerogas-red focus:ring-aerogas-red border-gray-300 rounded cursor-pointer"
-                  />
+                  <input type="checkbox" name="servicios" value={servicio.id} className="w-4 h-4 text-aerogas-red focus:ring-aerogas-red border-gray-300 rounded cursor-pointer" />
                   <span className="text-sm text-gray-700">{servicio.nombre}</span>
                 </label>
               ))}
@@ -110,14 +122,8 @@ export default async function NuevaEstacionPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fotografía del Grifo</label>
-            <input 
-              type="file" 
-              name="imagen" 
-              accept="image/*" 
-              required
-              className="w-full border border-gray-300 rounded-md px-4 py-2 bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-aerogas-blue file:text-white hover:file:bg-blue-900 transition-all cursor-pointer"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fotografía del Grifo *</label>
+            <input type="file" name="imagen" accept="image/*" required className="w-full border border-gray-300 rounded-md px-4 py-2 bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-aerogas-blue file:text-white hover:file:bg-blue-900 transition-all cursor-pointer" />
           </div>
 
           <button type="submit" className="w-full bg-aerogas-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors shadow-md mt-4">

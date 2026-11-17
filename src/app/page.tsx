@@ -2,12 +2,18 @@ import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import MensajeExito from "../components/MensajeExito";
+import CarruselFlota from "../components/CarruselFlota";
 import { pool } from "../lib/db";
 import { revalidatePath } from "next/cache";
 
 export default async function Home(props: { searchParams: Promise<{ exito?: string, cotizar?: string }> }) {
   
-  const [rows] = await pool.query(`
+  // 1. Consultar Configuración Web (¡NUEVO!)
+  const [configRows] = await pool.query("SELECT * FROM configuracion_web WHERE id = 1");
+  const config = (configRows as any[])[0];
+
+  // 2. Consultar Estaciones
+  const [estacionesRows] = await pool.query(`
     SELECT 
       e.id, e.nombre, e.direccion, e.ciudad, e.imagen, e.mapa_url,
       GROUP_CONCAT(s.nombre SEPARATOR ',') as servicios_str
@@ -19,7 +25,7 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
     ORDER BY e.id ASC;
   `);
 
-  const estaciones = (rows as any[]).map((row) => ({
+  const estaciones = (estacionesRows as any[]).map((row) => ({
     id: row.id,
     nombre: row.nombre,
     direccion: row.direccion,
@@ -29,12 +35,17 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
     servicios: row.servicios_str ? row.servicios_str.split(',') : [],
   }));
 
-  // Leemos los parámetros para saber si debemos abrir la ventana flotante
+  // 3. Consultar Flota de Cisternas
+  const [flotaRows] = await pool.query("SELECT * FROM cisternas ORDER BY capacidad DESC");
+  const cisternas = flotaRows as any[];
+
+  // 4. Control del Modal de Cotización
   const searchParams = await props.searchParams;
   const exito = searchParams?.exito === "true";
   const abrirCotizador = searchParams?.cotizar === "true";
   const mostrarModal = exito || abrirCotizador;
 
+  // 5. Guardar Cotización
   async function enviarCotizacion(formData: FormData) {
     "use server";
     const empresa = formData.get("empresa") as string;
@@ -51,7 +62,6 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
 
     const { redirect } = await import("next/navigation");
     revalidatePath("/");
-    // Al guardar, recargamos el modal pero en modo "éxito"
     redirect("/?exito=true");
   }
 
@@ -59,23 +69,62 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
     <main className="flex min-h-screen flex-col items-center w-full overflow-x-hidden">
       <Navbar />
 
-      <section className="w-full bg-aerogas-gray flex flex-col justify-center items-center text-center py-24 px-4">
-        <h1 className="text-5xl md:text-6xl font-extrabold text-aerogas-blue mb-6 max-w-4xl leading-tight">
-          Energía que impulsa el desarrollo del <span className="text-aerogas-red">Norte</span>
-        </h1>
-        <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl font-medium">
-          Más de 20 estaciones de servicio ofreciendo combustibles, GLP y GNV con el peso exacto, seguridad y la logística que tu flota necesita.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link href="#estaciones" className="bg-aerogas-red hover:bg-red-700 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-lg transition-transform transform hover:-translate-y-1">
-            📍 Encuentra tu Estación
-          </Link>
-          <Link href="#flota" className="bg-white border-2 border-aerogas-blue text-aerogas-blue hover:bg-aerogas-blue hover:text-white px-8 py-4 rounded-lg font-bold text-lg shadow-lg transition-colors">
-            💼 Soluciones Corporativas
-          </Link>
+      {/* HERO SECTION DINÁMICO (VIDEO/IMAGEN) */}
+      <section className="relative w-full flex flex-col justify-center items-center text-center py-32 px-4 overflow-hidden min-h-[85vh]">
+        
+        {/* Capa 1: Archivo Multimedia de Fondo */}
+        {config.hero_multimedia_tipo === 'video' && config.hero_multimedia_url ? (
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          >
+            <source src={config.hero_multimedia_url} type="video/mp4" />
+          </video>
+        ) : config.hero_multimedia_url ? (
+          <img 
+            src={config.hero_multimedia_url} 
+            alt="Fondo Aerogas" 
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          />
+        ) : (
+          <div className="absolute inset-0 w-full h-full bg-aerogas-blue z-0"></div>
+        )}
+
+        {/* Capa 2: Overlay Oscuro (para que el texto blanco resalte perfectamente) */}
+        <div className="absolute inset-0 bg-black/30 z-10"></div>
+
+        {/* Capa 3: Contenido de Texto (Administrable) */}
+        <div className="relative z-20 max-w-4xl mx-auto flex flex-col items-center animate-fade-in-up">
+          <h1 
+            className="text-5xl md:text-6xl font-extrabold text-white mb-6 leading-tight drop-shadow-lg"
+            dangerouslySetInnerHTML={{ __html: config.hero_titulo.replace(/className=/g, 'class=') }}
+          />
+          
+          <p 
+            className="text-lg md:text-xl text-gray-200 mb-4 max-w-3xl font-medium leading-relaxed drop-shadow-md"
+            dangerouslySetInnerHTML={{ __html: config.hero_texto_1.replace(/className=/g, 'class=') }}
+          />
+          
+          <p 
+            className="text-md md:text-lg text-gray-300 mb-10 max-w-2xl font-normal leading-relaxed drop-shadow-md"
+            dangerouslySetInnerHTML={{ __html: config.hero_texto_2.replace(/className=/g, 'class=') }}
+          />
+
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+            <Link href="#estaciones" className="bg-aerogas-red hover:bg-red-700 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-xl transition-transform transform hover:-translate-y-1">
+              📍 Red de Estaciones
+            </Link>
+            <Link href="#flota" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-aerogas-blue px-8 py-4 rounded-lg font-bold text-lg shadow-xl transition-colors">
+              💼 Soluciones B2B
+            </Link>
+          </div>
         </div>
       </section>
 
+      {/* SECCIÓN ESTACIONES */}
       <section id="estaciones" className="w-full bg-white py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -102,9 +151,10 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
                       </span>
                     ))}
                   </div>
-                  <a href={estacion.mapa_url} target="_blank" rel="noopener noreferrer" className="w-full bg-aerogas-blue hover:bg-blue-900 text-white font-semibold py-3 rounded-lg transition-colors mt-auto text-center inline-block">
-                    Ver en Mapa
-                  </a>
+                  
+                  <Link href={`/estacion/${estacion.id}`} className="w-full bg-aerogas-blue hover:bg-blue-900 text-white font-semibold py-3 rounded-lg transition-colors mt-auto text-center inline-block">
+                    Ver Detalles
+                  </Link>
                 </div>
               </div>
             ))}
@@ -112,40 +162,56 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
         </div>
       </section>
 
-      <section id="flota" className="w-full bg-aerogas-blue text-white py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-6">Soluciones para Flotas y Socios Corporativos</h2>
-            <p className="text-gray-300 text-lg mb-6 leading-relaxed">
-              En Aerogas del Norte entendemos que tu negocio no puede detenerse. Contamos con una moderna flota de cisternas para garantizar el abastecimiento ininterrumpido de todas nuestras estaciones y clientes corporativos.
+      {/* SECCIÓN FLOTA Y B2B */}
+      <section id="flota" className="w-full bg-gray-50 py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-aerogas-blue mb-6">Soluciones para Flotas y Socios Corporativos</h2>
+            <p className="text-gray-600 text-lg max-w-3xl mx-auto leading-relaxed">
+              En Aerogas del Norte entendemos que tu negocio no puede detenerse. Contamos con una moderna flota propia de cisternas para garantizar el abastecimiento ininterrumpido a todas nuestras estaciones y clientes corporativos directos.
             </p>
-            <ul className="space-y-4 mb-8">
-              <li className="flex items-center gap-3"><span className="bg-aerogas-red p-2 rounded-full">✅</span><span className="font-semibold">Abastecimiento mayorista garantizado.</span></li>
-              <li className="flex items-center gap-3"><span className="bg-aerogas-red p-2 rounded-full">✅</span><span className="font-semibold">Control de consumo exacto para flotas.</span></li>
-              <li className="flex items-center gap-3"><span className="bg-aerogas-red p-2 rounded-full">✅</span><span className="font-semibold">Líneas de crédito corporativo disponibles.</span></li>
-            </ul>
-            
-            {/* BOTÓN ACTUALIZADO: Abre el modal sin hacer scroll */}
-            <Link href="/?cotizar=true" scroll={false} className="inline-block bg-white text-aerogas-blue font-bold px-8 py-3 rounded-lg hover:bg-gray-200 transition-colors shadow-lg">
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8 text-center">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <span className="text-3xl mb-3 block">🚛</span>
+              <h3 className="font-bold text-aerogas-blue mb-2">Abastecimiento Mayorista</h3>
+              <p className="text-sm text-gray-500">Logística asegurada en cualquier punto de la región.</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <span className="text-3xl mb-3 block">📊</span>
+              <h3 className="font-bold text-aerogas-blue mb-2">Control de Flotas</h3>
+              <p className="text-sm text-gray-500">Galonaje exacto y monitoreo de consumo.</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <span className="text-3xl mb-3 block">🤝</span>
+              <h3 className="font-bold text-aerogas-blue mb-2">Crédito Corporativo</h3>
+              <p className="text-sm text-gray-500">Planes financieros adaptados a tu empresa.</p>
+            </div>
+          </div>
+
+          {cisternas.length > 0 && (
+            <div className="mb-16">
+              <CarruselFlota cisternas={cisternas} />
+            </div>
+          )}
+
+          <div className="text-center">
+            <Link href="/?cotizar=true" scroll={false} className="inline-block bg-aerogas-red text-white font-bold px-10 py-4 rounded-xl hover:bg-red-700 transition-transform transform hover:-translate-y-1 shadow-xl text-lg">
               Solicitar Cotización B2B
             </Link>
-          </div>
-          <div className="w-full h-80 lg:h-full min-h-[400px] bg-gray-300 rounded-xl overflow-hidden relative shadow-2xl">
-            <img src="https://placehold.co/800x600/DF1B23/FFFFFF?text=Foto+de+Cisternas+Aerogas" alt="Flota de Cisternas Aerogas" className="w-full h-full object-cover" />
           </div>
         </div>
       </section>
 
       <Footer />
 
-      {/* =========================================
-          VENTANA EMERGENTE (MODAL DE COTIZACIÓN) 
-          ========================================= */}
+      {/* MODAL DE COTIZACIÓN */}
       {mostrarModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto relative p-8">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto relative p-8 animate-fade-in-up">
             
-            {/* Botón Cerrar */}
             <Link href="/" scroll={false} className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors">
               ✕
             </Link>

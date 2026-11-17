@@ -23,17 +23,27 @@ export default async function AdminDashboard() {
     <main className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-xl p-8 border border-gray-200">
         
+        {/* NUEVO MENÚ DE NAVEGACIÓN UNIFICADO */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b pb-6 gap-4">
-          <h1 className="text-3xl font-extrabold text-aerogas-blue">Panel de Control de Estaciones</h1>
-          <div className="flex gap-4">
-            <Link href="/" className="px-5 py-2 text-sm text-gray-700 font-semibold border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-              🌎 Ver Web Pública
+          <h1 className="text-3xl font-extrabold text-aerogas-blue">Panel de Control</h1>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/" className="px-4 py-2 text-sm text-gray-700 font-semibold border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+              🌎 Ver Web
             </Link>
-            {/* NUEVO BOTÓN: Acceso a la Bandeja de Cotizaciones */}
-            <Link href="/admin/cotizaciones" className="px-5 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-800 transition-colors font-bold shadow-md">
-              📥 Bandeja B2B
+            {/* NUEVO BOTÓN PARA CONFIGURACIÓN WEB */}
+            <Link href="/admin/configuracion" className="px-4 py-2 text-sm text-white bg-gray-800 rounded-md hover:bg-gray-900 transition-colors font-bold shadow-md">
+              ⚙️ Web
             </Link>
-            <Link href="/admin/nuevo" className="px-5 py-2 text-sm text-white bg-aerogas-red rounded-md hover:bg-red-700 transition-colors font-bold shadow-md">
+            
+            <Link href="/admin/cotizaciones" className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-800 transition-colors font-bold shadow-md">
+              📥 Cotizaciones
+            </Link>
+
+            <Link href="/admin/flota" className="px-4 py-2 text-sm text-white bg-green-600 rounded-md hover:bg-green-800 transition-colors font-bold shadow-md">
+              🚛 Flota (Cisternas)
+            </Link>
+
+            <Link href="/admin/nuevo" className="px-4 py-2 text-sm text-white bg-aerogas-red rounded-md hover:bg-red-700 transition-colors font-bold shadow-md">
               + Nueva Estación
             </Link>
           </div>

@@ -1,13 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb", // Aumentamos el límite a 10 Megabytes
     },
   },
 };
