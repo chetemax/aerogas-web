@@ -34,6 +34,10 @@ export default async function AdminDashboard() {
             <Link href="/admin/configuracion" className="px-4 py-2 text-sm text-white bg-gray-800 rounded-md hover:bg-gray-900 transition-colors font-bold shadow-md">
               ⚙️ Web
             </Link>
+            {/* NUEVO BOTÓN PARA RECURSOS HUMANOS */}
+            <Link href="/admin/postulantes" className="px-4 py-2 text-sm text-white bg-green-600 rounded-md hover:bg-green-800 transition-colors font-bold shadow-md">
+              👥 Postulantes
+            </Link>
             
             <Link href="/admin/cotizaciones" className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-800 transition-colors font-bold shadow-md">
               📥 Cotizaciones

@@ -39,8 +39,9 @@ export default async function EditarEstacionPage({ params }: Props) {
     const direccion = formData.get("direccion") as string;
     const ciudad = formData.get("ciudad") as string;
     const mapa_url = formData.get("mapa_url") as string;
+    const latitud = formData.get("latitud") as string;
+    const longitud = formData.get("longitud") as string;
     
-    // Capturando nuevos campos
     const horario = formData.get("horario") as string;
     const telefono_estacion = formData.get("telefono_estacion") as string;
     const descripcion = formData.get("descripcion") as string;
@@ -64,8 +65,8 @@ export default async function EditarEstacionPage({ params }: Props) {
 
     // Consulta UPDATE actualizada
     await pool.query(
-      `UPDATE estaciones SET nombre = ?, direccion = ?, ciudad = ?, imagen = ?, mapa_url = ?, horario = ?, telefono_estacion = ?, descripcion = ? WHERE id = ?`,
-      [nombre, direccion, ciudad, imagenUrl, mapa_url, horario, telefono_estacion, descripcion, id]
+      `UPDATE estaciones SET nombre = ?, direccion = ?, ciudad = ?, imagen = ?, mapa_url = ?, latitud = ?, longitud = ?, horario = ?, telefono_estacion = ?, descripcion = ? WHERE id = ?`,
+      [nombre, direccion, ciudad, imagenUrl, mapa_url, latitud, longitud, horario, telefono_estacion, descripcion, id]
     );
 
     await pool.query(`DELETE FROM estacion_servicios WHERE estacion_id = ?`, [id]);
@@ -130,6 +131,24 @@ export default async function EditarEstacionPage({ params }: Props) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Enlace de Google Maps *</label>
             <input type="url" name="mapa_url" required defaultValue={estacion.mapa_url} className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all" />
+          </div>
+
+          {/* NUEVO: CAMPOS DE COORDENADAS PARA EL MAPA INTERACTIVO */}
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <p className="text-sm font-medium text-aerogas-blue mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              Coordenadas para el Mapa Interactivo
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Latitud</label>
+                <input type="text" name="latitud" defaultValue={estacion.latitud} placeholder="Ej: -6.7713" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Longitud</label>
+                <input type="text" name="longitud" defaultValue={estacion.longitud} placeholder="Ej: -79.8385" className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-aerogas-red outline-none transition-all text-sm" />
+              </div>
+            </div>
           </div>
 
           <div>

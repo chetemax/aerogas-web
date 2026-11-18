@@ -1,21 +1,24 @@
 import Link from "next/link";
+import BotonWhatsApp from "../components/BotonWhatsApp";
+import ModalBienvenida from "../components/ModalBienvenida";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import MensajeExito from "../components/MensajeExito";
 import CarruselFlota from "../components/CarruselFlota";
+import MapaEstaciones from "../components/MapaEstaciones";
 import { pool } from "../lib/db";
 import { revalidatePath } from "next/cache";
 
 export default async function Home(props: { searchParams: Promise<{ exito?: string, cotizar?: string }> }) {
   
-  // 1. Consultar Configuración Web (¡NUEVO!)
+  // 1. Consultar Configuración Web
   const [configRows] = await pool.query("SELECT * FROM configuracion_web WHERE id = 1");
   const config = (configRows as any[])[0];
 
-  // 2. Consultar Estaciones
+  // 2. Consultar Estaciones (Agregado latitud y longitud a la consulta)
   const [estacionesRows] = await pool.query(`
     SELECT 
-      e.id, e.nombre, e.direccion, e.ciudad, e.imagen, e.mapa_url,
+      e.id, e.nombre, e.direccion, e.ciudad, e.imagen, e.mapa_url, e.latitud, e.longitud,
       GROUP_CONCAT(s.nombre SEPARATOR ',') as servicios_str
     FROM estaciones e
     LEFT JOIN estacion_servicios es ON e.id = es.estacion_id
@@ -32,6 +35,8 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
     ciudad: row.ciudad,
     imagen: row.imagen,
     mapa_url: row.mapa_url,
+    latitud: row.latitud,
+    longitud: row.longitud,
     servicios: row.servicios_str ? row.servicios_str.split(',') : [],
   }));
 
@@ -45,7 +50,7 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
   const abrirCotizador = searchParams?.cotizar === "true";
   const mostrarModal = exito || abrirCotizador;
 
-  // 5. Guardar Cotización
+  // 5. Guardar Cotización B2B
   async function enviarCotizacion(formData: FormData) {
     "use server";
     const empresa = formData.get("empresa") as string;
@@ -93,46 +98,66 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
           <div className="absolute inset-0 w-full h-full bg-aerogas-blue z-0"></div>
         )}
 
-        {/* Capa 2: Overlay Oscuro (para que el texto blanco resalte perfectamente) */}
-        <div className="absolute inset-0 bg-black/30 z-10"></div>
+        {/* Capa 2: Overlay Oscuro Base */}
+        <div className="absolute inset-0 bg-black/40 z-10"></div>
 
-        {/* Capa 3: Contenido de Texto (Administrable) */}
-        <div className="relative z-20 max-w-4xl mx-auto flex flex-col items-center animate-fade-in-up">
+        {/* Capa 3: Contenido de Texto con Efecto Vidrio (Glassmorphism) */}
+        <div className="relative z-20 max-w-5xl mx-auto flex flex-col items-center animate-fade-in-up bg-black/40 backdrop-blur-md p-8 md:p-14 rounded-3xl border border-white/10 shadow-2xl">
           <h1 
-            className="text-5xl md:text-6xl font-extrabold text-white mb-6 leading-tight drop-shadow-lg"
+            className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight drop-shadow-xl"
             dangerouslySetInnerHTML={{ __html: config.hero_titulo.replace(/className=/g, 'class=') }}
           />
           
           <p 
-            className="text-lg md:text-xl text-gray-200 mb-4 max-w-3xl font-medium leading-relaxed drop-shadow-md"
-            dangerouslySetInnerHTML={{ __html: config.hero_texto_1.replace(/className=/g, 'class=') }}
+            className="text-lg md:text-2xl text-gray-100 mb-6 max-w-4xl font-medium leading-relaxed drop-shadow-lg"
+            dangerouslySetInnerHTML={{ __html: config.hero_texto_1.replace(/text-aerogas-blue/g, 'text-blue-300').replace(/className=/g, 'class=') }}
           />
           
           <p 
-            className="text-md md:text-lg text-gray-300 mb-10 max-w-2xl font-normal leading-relaxed drop-shadow-md"
+            className="text-base md:text-lg text-gray-300 mb-10 max-w-3xl font-light leading-relaxed drop-shadow-md"
             dangerouslySetInnerHTML={{ __html: config.hero_texto_2.replace(/className=/g, 'class=') }}
           />
 
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <Link href="#estaciones" className="bg-aerogas-red hover:bg-red-700 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-xl transition-transform transform hover:-translate-y-1">
-              📍 Red de Estaciones
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 mt-4 w-full">
+            <Link href="#estaciones" className="group flex items-center justify-center gap-3 bg-aerogas-red hover:bg-red-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all hover:scale-105">
+              <svg className="w-6 h-6 fill-current transition-transform group-hover:-translate-y-1" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+              Red de Estaciones
             </Link>
-            <Link href="#flota" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-aerogas-blue px-8 py-4 rounded-lg font-bold text-lg shadow-xl transition-colors">
-              💼 Soluciones B2B
+            
+            <Link href="#flota" className="group flex items-center justify-center gap-3 bg-transparent border-2 border-white text-white hover:bg-white hover:text-aerogas-blue px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all hover:scale-105">
+              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
+              </svg>
+              Soluciones B2B
+            </Link>
+            
+            <Link href="/unete-al-equipo" className="group flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all hover:scale-105">
+              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+              </svg>
+              Únete al Equipo
             </Link>
           </div>
         </div>
       </section>
 
-      {/* SECCIÓN ESTACIONES */}
+      {/* SECCIÓN ESTACIONES CON ÍCONOS SVG */}
       <section id="estaciones" className="w-full bg-white py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-extrabold text-aerogas-blue mb-4">Nuestra Red de Estaciones</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Encuentra el punto Aerogas más cercano a tu ruta. Abastecimiento continuo, tiendas de conveniencia y atención 24/7.
             </p>
           </div>
+
+          {/* MAPA INTERACTIVO CARGADO CORRECTAMENTE */}
+          <div className="mb-16">
+            <MapaEstaciones estaciones={estaciones} />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {estaciones.map((estacion) => (
               <div key={estacion.id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden">
@@ -141,9 +166,15 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
                 </div>
                 <div className="p-6 flex flex-col flex-1">
                   <h3 className="text-xl font-bold text-aerogas-blue mb-2">{estacion.nombre}</h3>
+                  
+                  {/* AQUÍ REEMPLAZAMOS EL EMOJI 📍 POR EL SVG CORPORATIVO */}
                   <p className="text-gray-500 mb-4 flex items-start gap-2">
-                    <span className="text-aerogas-red">📍</span> {estacion.direccion}, {estacion.ciudad}
+                    <svg className="w-5 h-5 text-aerogas-red shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    <span>{estacion.direccion}, {estacion.ciudad}</span>
                   </p>
+                  
                   <div className="flex flex-wrap gap-2 mb-6">
                     {estacion.servicios.map((servicio: string, index: number) => (
                       <span key={index} className="bg-aerogas-gray text-aerogas-blue text-xs font-bold px-3 py-1 rounded-full border border-gray-300">
@@ -162,33 +193,43 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
         </div>
       </section>
 
-      {/* SECCIÓN FLOTA Y B2B */}
-      <section id="flota" className="w-full bg-gray-50 py-20 px-4 sm:px-6 lg:px-8">
+      {/* SECCIÓN FLOTA Y B2B CON ÍCONOS PROFESIONALES */}
+      <section id="flota" className="w-full bg-gray-50 py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-extrabold text-aerogas-blue mb-6">Soluciones para Flotas y Socios Corporativos</h2>
             <p className="text-gray-600 text-lg max-w-3xl mx-auto leading-relaxed">
               En Aerogas del Norte entendemos que tu negocio no puede detenerse. Contamos con una moderna flota propia de cisternas para garantizar el abastecimiento ininterrumpido a todas nuestras estaciones y clientes corporativos directos.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8 text-center">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <span className="text-3xl mb-3 block">🚛</span>
-              <h3 className="font-bold text-aerogas-blue mb-2">Abastecimiento Mayorista</h3>
-              <p className="text-sm text-gray-500">Logística asegurada en cualquier punto de la región.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-16 text-center">
+            
+            <div className="group bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1">
+              <svg className="w-16 h-16 mx-auto mb-5 text-aerogas-blue group-hover:text-aerogas-red transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+              </svg>
+              <h3 className="text-xl font-bold text-aerogas-blue mb-3">Abastecimiento Mayorista</h3>
+              <p className="text-gray-500">Logística asegurada en cualquier punto de la región.</p>
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <span className="text-3xl mb-3 block">📊</span>
-              <h3 className="font-bold text-aerogas-blue mb-2">Control de Flotas</h3>
-              <p className="text-sm text-gray-500">Galonaje exacto y monitoreo de consumo.</p>
+            
+            <div className="group bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1">
+              <svg className="w-16 h-16 mx-auto mb-5 text-aerogas-blue group-hover:text-aerogas-red transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+              </svg>
+              <h3 className="text-xl font-bold text-aerogas-blue mb-3">Control de Flotas</h3>
+              <p className="text-gray-500">Galonaje exacto y monitoreo de consumo.</p>
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <span className="text-3xl mb-3 block">🤝</span>
-              <h3 className="font-bold text-aerogas-blue mb-2">Crédito Corporativo</h3>
-              <p className="text-sm text-gray-500">Planes financieros adaptados a tu empresa.</p>
+
+            <div className="group bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1">
+              <svg className="w-16 h-16 mx-auto mb-5 text-aerogas-blue group-hover:text-aerogas-red transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
+              </svg>
+              <h3 className="text-xl font-bold text-aerogas-blue mb-3">Crédito Corporativo</h3>
+              <p className="text-gray-500">Planes financieros adaptados a tu empresa.</p>
             </div>
+
           </div>
 
           {cisternas.length > 0 && (
@@ -267,6 +308,17 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
           </div>
         </div>
       )}
+
+      {/* BOTÓN FLOTANTE DE WHATSAPP GLOBAL */}
+      <BotonWhatsApp />
+
+      {/* MODAL INTELIGENTE DE PRIMERA VISITA */}
+      <ModalBienvenida 
+        modalActivo={Boolean(config.modal_activo)} 
+        modalImagen={config.modal_imagen} 
+        modalEnlace={config.modal_enlace} 
+      />
+
     </main>
   );
 }
