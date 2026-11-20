@@ -43,16 +43,37 @@ export default function Footer() {
               </svg>
               <span>Horario Administrativo: Lun - Vie 8:00am a 6:00pm</span>
             </li>
-          </ul>
+          </ul> 
         </div>
         
         <div>
           <h3 className="text-white font-bold text-lg mb-4">Enlaces Rápidos</h3>
           <ul className="space-y-2 text-sm">
-            <li><Link href="https://consulta.efacturas.pe/aerogasdelnorte" target="_blank" className="hover:text-aerogas-red transition-colors">Portal de Facturación Electrónica</Link></li>
-            <li><Link href="#estaciones" className="hover:text-aerogas-red transition-colors">Ver Mapa de Estaciones</Link></li>
-            <li><Link href="#flota" className="hover:text-aerogas-red transition-colors">Servicios B2B</Link></li>
-            <li><a href="#" className="hover:text-aerogas-red transition-colors">Libro de Reclamaciones</a></li>
+            <li>
+              <Link href="https://consulta.efacturas.pe/aerogasdelnorte" target="_blank" rel="noopener noreferrer" className="hover:text-aerogas-red transition-colors">
+                Portal de Facturación Electrónica
+              </Link>
+            </li>
+            <li>
+              <Link href="/#estaciones" className="hover:text-aerogas-red transition-colors">
+                Ver Mapa de Estaciones
+              </Link>
+            </li>
+            <li>
+              <Link href="/aeromarket" className="hover:text-aerogas-red transition-colors">
+                AeroMarket y Promociones
+              </Link>
+            </li>
+            <li>
+              <Link href="/#flota" className="hover:text-aerogas-red transition-colors">
+                Servicios B2B
+              </Link>
+            </li>
+            <li>
+              <a href="#" className="hover:text-aerogas-red transition-colors">
+                Libro de Reclamaciones
+              </a>
+            </li>
           </ul>
         </div>
         

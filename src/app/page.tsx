@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import MensajeExito from "../components/MensajeExito";
 import CarruselFlota from "../components/CarruselFlota";
-import MapaEstaciones from "../components/MapaEstaciones";
+import RedEstaciones from "../components/RedEstaciones";
 import { pool } from "../lib/db";
 import { revalidatePath } from "next/cache";
 
@@ -15,7 +15,7 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
   const [configRows] = await pool.query("SELECT * FROM configuracion_web WHERE id = 1");
   const config = (configRows as any[])[0];
 
-  // 2. Consultar Estaciones (Agregado latitud y longitud a la consulta)
+  // 2. Consultar Estaciones (Incluyendo latitud y longitud)
   const [estacionesRows] = await pool.query(`
     SELECT 
       e.id, e.nombre, e.direccion, e.ciudad, e.imagen, e.mapa_url, e.latitud, e.longitud,
@@ -143,7 +143,7 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
         </div>
       </section>
 
-      {/* SECCIÓN ESTACIONES CON ÍCONOS SVG */}
+      {/* SECCIÓN ESTACIONES: FILTROS + MAPA SINCRONIZADO + PAGINACIÓN */}
       <section id="estaciones" className="w-full bg-white py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
@@ -153,43 +153,7 @@ export default async function Home(props: { searchParams: Promise<{ exito?: stri
             </p>
           </div>
 
-          {/* MAPA INTERACTIVO CARGADO CORRECTAMENTE */}
-          <div className="mb-16">
-            <MapaEstaciones estaciones={estaciones} />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {estaciones.map((estacion) => (
-              <div key={estacion.id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden">
-                <div className="w-full h-48 bg-gray-200 relative">
-                  <img src={estacion.imagen} alt={`Fotografía de ${estacion.nombre}`} className="w-full h-full object-cover" />
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <h3 className="text-xl font-bold text-aerogas-blue mb-2">{estacion.nombre}</h3>
-                  
-                  {/* AQUÍ REEMPLAZAMOS EL EMOJI 📍 POR EL SVG CORPORATIVO */}
-                  <p className="text-gray-500 mb-4 flex items-start gap-2">
-                    <svg className="w-5 h-5 text-aerogas-red shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                    </svg>
-                    <span>{estacion.direccion}, {estacion.ciudad}</span>
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {estacion.servicios.map((servicio: string, index: number) => (
-                      <span key={index} className="bg-aerogas-gray text-aerogas-blue text-xs font-bold px-3 py-1 rounded-full border border-gray-300">
-                        {servicio}
-                      </span>
-                    ))}
-                  </div>
-                  
-                  <Link href={`/estacion/${estacion.id}`} className="w-full bg-aerogas-blue hover:bg-blue-900 text-white font-semibold py-3 rounded-lg transition-colors mt-auto text-center inline-block">
-                    Ver Detalles
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+          <RedEstaciones estaciones={estaciones} />
         </div>
       </section>
 
