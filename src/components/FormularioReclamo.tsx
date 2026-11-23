@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { registrarReclamo } from "../app/libro-de-reclamaciones/actions";
+import CamposAntiBot from "./CamposAntiBot";
 
 export type OpcionSede = {
   key: string;
@@ -63,7 +64,10 @@ export default function FormularioReclamo({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8 relative">
+      {/* CAMPOS ANTI-BOT INVISIBLES */}
+      <CamposAntiBot />
+
       {/* MENSAJE DE ERROR */}
       {errorMsg && (
         <div

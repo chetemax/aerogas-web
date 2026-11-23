@@ -10,6 +10,7 @@ import {
   formatearFechaHoraPE,
 } from "../../lib/diasHabiles";
 import { enviarCorreosNuevoReclamo } from "../../lib/mailer";
+import { verificarAntiBot } from "../../lib/antibot";
 
 export type ResultadoRegistroReclamo = {
   ok: boolean;
@@ -21,6 +22,23 @@ export async function registrarReclamo(
   formData: FormData
 ): Promise<ResultadoRegistroReclamo> {
   try {
+    // 0. Capa Anti-Bots (antes de tocar MySQL o SMTP)
+    const checkBot = await verificarAntiBot(formData, {
+      accion: "libro_reclamaciones",
+      maxIntentos: 3,
+      ventanaMinutos: 15,
+      tiempoMinimoMs: 3000,
+    });
+
+    if (!checkBot.ok) {
+      return {
+        ok: false,
+        error:
+          checkBot.error ||
+          "No se pudo validar el envío. Intente nuevamente en unos momentos.",
+      };
+    }
+
     // 1. Lectura y limpieza de campos
     const sedeKey = String(formData.get("sede_key") || "").trim();
     const tipo_documento = String(formData.get("tipo_documento") || "").trim();
@@ -96,7 +114,8 @@ export async function registrarReclamo(
     ) {
       return {
         ok: false,
-        error: "Complete todos los campos obligatorios de identificación del consumidor.",
+        error:
+          "Complete todos los campos obligatorios de identificación del consumidor.",
       };
     }
 
