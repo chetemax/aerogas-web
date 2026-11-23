@@ -153,7 +153,7 @@ export default async function AeroMarketPage() {
                 </svg>
               </div>
               <h3 className="text-lg font-bold text-aerogas-blue mb-2">
-                Atención 24/7
+                Atención de 8 a.m. - 8 p.m.
               </h3>
               <p className="text-sm text-gray-500 leading-relaxed">
                 Abiertos a cualquier hora del día o de la noche para acompañarte en cada trayecto.
@@ -301,7 +301,7 @@ export default async function AeroMarketPage() {
                           d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      {estacion.horario || "Atención 24/7"}
+                      {estacion.horario || "Atención 8 a.m. - 8 p.m."}
                     </p>
 
                     <div className="mt-auto grid grid-cols-2 gap-3">
