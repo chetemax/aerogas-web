@@ -70,11 +70,42 @@ export default function Footer() {
               </Link>
             </li>
             <li>
-              <a href="#" className="hover:text-aerogas-red transition-colors">
+              <Link href="/libro-de-reclamaciones" className="hover:text-aerogas-red transition-colors">
                 Libro de Reclamaciones
-              </a>
+              </Link>
             </li>
           </ul>
+
+          {/* DISTINTIVO VISUAL OFICIAL DEL LIBRO DE RECLAMACIONES VIRTUAL (INDECOPI) */}
+          <div className="mt-5">
+            <Link
+              href="/libro-de-reclamaciones"
+              aria-label="Acceder al Libro de Reclamaciones Virtual de Aerogas del Norte"
+              className="group inline-flex items-center gap-3.5 bg-white hover:bg-gray-100 text-aerogas-blue border-2 border-aerogas-blue rounded-xl px-4 py-3 shadow-md hover:shadow-lg transition-all"
+            >
+              <div className="w-11 h-11 rounded-lg bg-aerogas-blue group-hover:bg-aerogas-red text-white flex items-center justify-center shrink-0 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+              </div>
+              <div className="leading-tight text-left">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  Ley N° 29571 — INDECOPI
+                </span>
+                <span className="block text-sm font-extrabold text-aerogas-blue group-hover:text-aerogas-red transition-colors">
+                  LIBRO DE RECLAMACIONES
+                </span>
+                <span className="block text-[11px] font-bold text-gray-600">
+                  Virtual — Haga clic aquí
+                </span>
+              </div>
+            </Link>
+          </div>
         </div>
         
       </div>

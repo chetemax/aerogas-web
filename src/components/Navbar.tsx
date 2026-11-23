@@ -74,7 +74,7 @@ export default function Navbar() {
               href="/#flota"
               className="text-gray-200 hover:text-aerogas-red transition-colors font-semibold tracking-wide"
             >
-              Logística B2B
+              Contáctanos
             </Link>
 
             <Link
