@@ -50,6 +50,11 @@ export default function Footer() {
           <h3 className="text-white font-bold text-lg mb-4">Enlaces Rápidos</h3>
           <ul className="space-y-2 text-sm">
             <li>
+              <Link href="/nosotros" className="hover:text-aerogas-red transition-colors">
+                Nosotros
+              </Link>
+            </li>
+            <li>
               <Link href="https://consulta.efacturas.pe/aerogasdelnorte" target="_blank" rel="noopener noreferrer" className="hover:text-aerogas-red transition-colors">
                 Portal de Facturación Electrónica
               </Link>
@@ -67,6 +72,11 @@ export default function Footer() {
             <li>
               <Link href="/#flota" className="hover:text-aerogas-red transition-colors">
                 Servicios B2B
+              </Link>
+            </li>
+            <li>
+              <Link href="/#preguntas-frecuentes" className="hover:text-aerogas-red transition-colors">
+                Preguntas Frecuentes
               </Link>
             </li>
             <li>

@@ -9,6 +9,7 @@ export default function Navbar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const esInicio = pathname === "/";
+  const esNosotros = pathname === "/nosotros";
   const esAeroMarket = pathname === "/aeromarket";
 
   return (
@@ -27,10 +28,10 @@ export default function Navbar() {
           </div>
 
           {/* MENÚ DE ESCRITORIO */}
-          <nav className="hidden md:flex items-center space-x-6 lg:space-x-8 text-sm lg:text-base">
+          <nav className="hidden lg:flex items-center space-x-6 text-sm">
             <Link
               href="/"
-              className={`transition-colors font-semibold tracking-wide ${
+              className={`whitespace-nowrap transition-colors font-semibold tracking-wide ${
                 esInicio
                   ? "text-white border-b-2 border-aerogas-red pb-1"
                   : "text-gray-200 hover:text-aerogas-red"
@@ -40,15 +41,26 @@ export default function Navbar() {
             </Link>
 
             <Link
+              href="/nosotros"
+              className={`whitespace-nowrap transition-colors font-semibold tracking-wide ${
+                esNosotros
+                  ? "text-white border-b-2 border-aerogas-red pb-1"
+                  : "text-gray-200 hover:text-aerogas-red"
+              }`}
+            >
+              Nosotros
+            </Link>
+
+            <Link
               href="/#estaciones"
-              className="text-gray-200 hover:text-aerogas-red transition-colors font-semibold tracking-wide"
+              className="whitespace-nowrap text-gray-200 hover:text-aerogas-red transition-colors font-semibold tracking-wide"
             >
               Red de Estaciones
             </Link>
 
             <Link
               href="/aeromarket"
-              className={`inline-flex items-center gap-1.5 transition-colors font-bold tracking-wide ${
+              className={`whitespace-nowrap inline-flex items-center gap-1.5 transition-colors font-bold tracking-wide ${
                 esAeroMarket
                   ? "text-white bg-aerogas-red/90 px-3.5 py-1.5 rounded-lg shadow-sm"
                   : "text-white hover:text-aerogas-red"
@@ -72,33 +84,33 @@ export default function Navbar() {
 
             <Link
               href="/#flota"
-              className="text-gray-200 hover:text-aerogas-red transition-colors font-semibold tracking-wide"
+              className="whitespace-nowrap text-gray-200 hover:text-aerogas-red transition-colors font-semibold tracking-wide"
             >
-              Contáctanos
+              Logística B2B
             </Link>
 
             <Link
               href="https://consulta.efacturas.pe/aerogasdelnorte"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-200 hover:text-aerogas-red transition-colors font-semibold tracking-wide"
+              className="whitespace-nowrap text-gray-200 hover:text-aerogas-red transition-colors font-semibold tracking-wide"
             >
               Comprobante Electrónico
             </Link>
           </nav>
 
           {/* BOTÓN CTA ESCRITORIO */}
-          <div className="hidden md:flex">
+          <div className="hidden lg:flex">
             <Link
               href="#contacto"
-              className="bg-aerogas-red hover:bg-red-700 text-white px-5 py-2.5 rounded-md font-bold text-sm transition-all shadow-md hover:shadow-lg"
+              className="whitespace-nowrap bg-aerogas-red hover:bg-red-700 text-white px-5 py-2.5 rounded-md font-bold text-sm transition-all shadow-md hover:shadow-lg"
             >
               Atención al Cliente
             </Link>
           </div>
 
-          {/* BOTÓN MENÚ MÓVIL */}
-          <div className="flex md:hidden">
+          {/* BOTÓN MENÚ MÓVIL / TABLET */}
+          <div className="flex lg:hidden">
             <button
               type="button"
               onClick={() => setMenuAbierto(!menuAbierto)}
@@ -119,9 +131,9 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* MENÚ DESPLEGABLE MÓVIL */}
+      {/* MENÚ DESPLEGABLE MÓVIL / TABLET */}
       {menuAbierto && (
-        <div className="md:hidden bg-aerogas-blue border-t border-white/10 px-4 pt-3 pb-5 space-y-2 shadow-xl">
+        <div className="lg:hidden bg-aerogas-blue border-t border-white/10 px-4 pt-3 pb-5 space-y-2 shadow-xl">
           <Link
             href="/"
             onClick={() => setMenuAbierto(false)}
@@ -130,6 +142,15 @@ export default function Navbar() {
             }`}
           >
             Inicio
+          </Link>
+          <Link
+            href="/nosotros"
+            onClick={() => setMenuAbierto(false)}
+            className={`block px-3 py-2.5 rounded-lg font-semibold ${
+              esNosotros ? "bg-white/15 text-white" : "text-gray-200 hover:bg-white/10"
+            }`}
+          >
+            Nosotros
           </Link>
           <Link
             href="/#estaciones"

@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import MensajeExito from "../components/MensajeExito";
 import CarruselFlota from "../components/CarruselFlota";
 import RedEstaciones from "../components/RedEstaciones";
+import SeccionFaq from "../components/SeccionFaq";
 import CamposAntiBot from "../components/CamposAntiBot";
 import { pool } from "../lib/db";
 import { verificarAntiBot } from "../lib/antibot";
@@ -210,7 +211,7 @@ export default async function Home(props: {
         </div>
       </section>
 
-      {/* SECCIÓN ESTACIONES: FILTROS + MAPA SINCRONIZADO + PAGINACIÓN */}
+      {/* SECCIÓN ESTACIONES: FILTROS + GPS + MAPA SINCRONIZADO + PAGINACIÓN */}
       <section
         id="estaciones"
         className="w-full bg-white py-20 px-4 sm:px-6 lg:px-8"
@@ -315,6 +316,9 @@ export default async function Home(props: {
           </div>
         </div>
       </section>
+
+      {/* PREGUNTAS FRECUENTES */}
+      <SeccionFaq />
 
       <Footer />
 
