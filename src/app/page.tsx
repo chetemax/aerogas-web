@@ -62,7 +62,7 @@ export default async function Home(props: {
   const errorCotizacion = searchParams?.error_cotizacion || "";
   const mostrarModal = exito || abrirCotizador;
 
-  // 5. Guardar Cotización B2B (con protección anti-bots)
+  // 5. Guardar Cotización B2B (con protección anti-bots + consentimiento Ley 29733)
   async function enviarCotizacion(formData: FormData) {
     "use server";
     const { redirect } = await import("next/navigation");
@@ -75,7 +75,6 @@ export default async function Home(props: {
     });
 
     if (!checkBot.ok) {
-      // Si cayó en el honeypot, descartamos en silencio sin guardar en BD
       if (checkBot.motivo === "honeypot") {
         redirect("/?exito=true");
       }
@@ -92,11 +91,20 @@ export default async function Home(props: {
     const telefono = String(formData.get("telefono") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const mensaje = String(formData.get("mensaje") || "").trim();
+    const aceptaPrivacidad = formData.get("acepta_privacidad") === "on";
 
     if (!empresa || !/^\d{11}$/.test(ruc) || !contacto || !telefono || !email) {
       redirect(
         `/?cotizar=true&error_cotizacion=${encodeURIComponent(
           "Por favor, complete correctamente todos los campos obligatorios y un RUC válido de 11 dígitos."
+        )}`
+      );
+    }
+
+    if (!aceptaPrivacidad) {
+      redirect(
+        `/?cotizar=true&error_cotizacion=${encodeURIComponent(
+          "Debe aceptar la Política de Privacidad para enviar su solicitud de cotización."
         )}`
       );
     }
@@ -427,6 +435,29 @@ export default async function Home(props: {
                       placeholder="Indícanos el tamaño de tu flota, consumo mensual estimado..."
                       className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-aerogas-red outline-none transition-all"
                     ></textarea>
+                  </div>
+
+                  {/* CONSENTIMIENTO LEY N° 29733 */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5">
+                    <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        name="acepta_privacidad"
+                        required
+                        className="w-4 h-4 mt-0.5 text-aerogas-red border-gray-300 rounded focus:ring-aerogas-red cursor-pointer shrink-0"
+                      />
+                      <span className="text-xs text-gray-600 leading-relaxed">
+                        Autorizo a <strong>Aerogas del Norte S.A.C.</strong> el tratamiento de mis datos personales para atender esta solicitud comercial, conforme a su{" "}
+                        <Link
+                          href="/politica-de-privacidad"
+                          target="_blank"
+                          className="text-aerogas-blue font-bold underline hover:text-aerogas-red"
+                        >
+                          Política de Privacidad
+                        </Link>{" "}
+                        (Ley N° 29733). *
+                      </span>
+                    </label>
                   </div>
 
                   <button

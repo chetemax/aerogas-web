@@ -38,11 +38,12 @@ export default async function UneteAlEquipo(props: {
       );
     }
 
-    // 2. Validar campos obligatorios
+    // 2. Validar campos obligatorios y consentimiento de privacidad
     const nombre = String(formData.get("nombre") || "").trim();
     const telefono = String(formData.get("telefono") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const puesto = String(formData.get("puesto") || "").trim();
+    const aceptaPrivacidad = formData.get("acepta_privacidad") === "on";
     const archivoCV = formData.get("cv") as File | null;
 
     if (!nombre || !telefono || !email || !puesto) {
@@ -57,6 +58,14 @@ export default async function UneteAlEquipo(props: {
       redirect(
         `/unete-al-equipo?error=${encodeURIComponent(
           "Por favor, ingresa un correo electrónico válido."
+        )}#formulario`
+      );
+    }
+
+    if (!aceptaPrivacidad) {
+      redirect(
+        `/unete-al-equipo?error=${encodeURIComponent(
+          "Debes aceptar la Política de Privacidad para enviar tu postulación."
         )}#formulario`
       );
     }
@@ -287,6 +296,29 @@ export default async function UneteAlEquipo(props: {
                   <p className="text-xs text-gray-500 mt-2">
                     Formatos permitidos: PDF, DOC o DOCX. Tamaño máximo: 5 MB.
                   </p>
+                </div>
+
+                {/* CONSENTIMIENTO LEY N° 29733 */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      name="acepta_privacidad"
+                      required
+                      className="w-4 h-4 mt-0.5 text-aerogas-blue border-gray-300 rounded focus:ring-aerogas-blue cursor-pointer shrink-0"
+                    />
+                    <span className="text-xs text-gray-600 leading-relaxed">
+                      Autorizo a <strong>Aerogas del Norte S.A.C.</strong> el tratamiento de mis datos personales y currículum vitae para fines de reclutamiento y selección de personal, conforme a su{" "}
+                      <Link
+                        href="/politica-de-privacidad"
+                        target="_blank"
+                        className="text-aerogas-blue font-bold underline hover:text-aerogas-red"
+                      >
+                        Política de Privacidad
+                      </Link>{" "}
+                      (Ley N° 29733). *
+                    </span>
+                  </label>
                 </div>
 
                 <button

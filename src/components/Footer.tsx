@@ -70,6 +70,11 @@ export default function Footer() {
               </Link>
             </li>
             <li>
+              <Link href="/politica-de-privacidad" className="hover:text-aerogas-red transition-colors">
+                Política de Privacidad
+              </Link>
+            </li>
+            <li>
               <Link href="/libro-de-reclamaciones" className="hover:text-aerogas-red transition-colors">
                 Libro de Reclamaciones
               </Link>
@@ -110,9 +115,15 @@ export default function Footer() {
         
       </div>
       
-      <div className="max-w-7xl mx-auto text-center text-xs text-gray-500 flex flex-col md:flex-row justify-between items-center">
+      <div className="max-w-7xl mx-auto text-center text-xs text-gray-500 flex flex-col md:flex-row justify-between items-center gap-2">
         <p>© {new Date().getFullYear()} Aerogas del Norte S.A.C. - RUC: 20458378747. Todos los derechos reservados.</p>
-        <p className="mt-2 md:mt-0">Desarrollado para Aerogas del Norte</p>
+        <div className="flex items-center gap-4">
+          <Link href="/politica-de-privacidad" className="hover:text-gray-300 transition-colors">
+            Política de Privacidad
+          </Link>
+          <span>•</span>
+          <span>Desarrollado para Aerogas del Norte</span>
+        </div>
       </div>
     </footer>
   );
