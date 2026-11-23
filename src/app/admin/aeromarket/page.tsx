@@ -1,15 +1,19 @@
 import { pool } from "../../../lib/db";
+import { validarArchivoSubido } from "../../../lib/antibot";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminAeroMarket(props: {
-  searchParams: Promise<{ guardado?: string }>;
+  searchParams: Promise<{ guardado?: string; error?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const guardado = searchParams?.guardado;
+  const errorMsg = searchParams?.error;
 
   // 1. Consultar configuración general de AeroMarket
   const [configRows] = await pool.query(
@@ -29,17 +33,16 @@ export default async function AdminAeroMarket(props: {
   );
   const promos = promosRows as any[];
 
-  // ACCIÓN 1: Guardar configuración de portada y catálogo PDF
+  // ACCIÓN 1: Guardar configuración de portada y catálogo PDF (con validación estricta)
   async function guardarConfiguracion(formData: FormData) {
     "use server";
 
-    const titulo = formData.get("titulo") as string;
-    const subtitulo = formData.get("subtitulo") as string;
-    const descripcion = formData.get("descripcion") as string;
-    const bannerFile = formData.get("banner") as File;
-    const catalogoFile = formData.get("catalogo_pdf") as File;
+    const titulo = String(formData.get("titulo") || "").trim();
+    const subtitulo = String(formData.get("subtitulo") || "").trim();
+    const descripcion = String(formData.get("descripcion") || "").trim();
+    const bannerFile = formData.get("banner") as File | null;
+    const catalogoFile = formData.get("catalogo_pdf") as File | null;
 
-    // Consultamos las rutas actuales para no sobrescribir si no se sube un archivo nuevo
     const [actualRows] = await pool.query(
       "SELECT banner_url, catalogo_pdf_url FROM aeromarket_config WHERE id = 1"
     );
@@ -50,32 +53,53 @@ export default async function AdminAeroMarket(props: {
 
     let bannerUrl = actual.banner_url || "";
     let catalogoUrl = actual.catalogo_pdf_url || "";
-
     const uploadDir = path.join(process.cwd(), "public/uploads/aeromarket");
 
-    // Guardar imagen de portada si se subió una nueva
+    // Validar y guardar imagen de portada (máx. 5 MB, JPG/PNG/WEBP)
     if (bannerFile && bannerFile.size > 0) {
-      const bytes = await bannerFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const cleanName = bannerFile.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-      const filename = `${Date.now()}-banner-${cleanName}`;
+      const valBanner = await validarArchivoSubido(bannerFile, {
+        maxMB: 5,
+        tiposPermitidos: ["imagen"],
+        obligatorio: false,
+      });
+
+      if (!valBanner.ok || !valBanner.buffer || !valBanner.nombreSeguro) {
+        redirect(
+          `/admin/aeromarket?error=${encodeURIComponent(
+            `Banner: ${valBanner.error || "Imagen no válida."}`
+          )}`
+        );
+      }
+
+      const filename = `${Date.now()}-banner-${valBanner.nombreSeguro}`;
       try {
         await mkdir(uploadDir, { recursive: true });
       } catch (e) {}
-      await writeFile(path.join(uploadDir, filename), buffer);
+      await writeFile(path.join(uploadDir, filename), valBanner.buffer);
       bannerUrl = `/uploads/aeromarket/${filename}`;
     }
 
-    // Guardar catálogo PDF si se subió uno nuevo
+    // Validar y guardar catálogo PDF (máx. 10 MB, PDF real)
     if (catalogoFile && catalogoFile.size > 0) {
-      const bytes = await catalogoFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const cleanName = catalogoFile.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-      const filename = `${Date.now()}-catalogo-${cleanName}`;
+      const valPdf = await validarArchivoSubido(catalogoFile, {
+        maxMB: 10,
+        tiposPermitidos: ["pdf"],
+        obligatorio: false,
+      });
+
+      if (!valPdf.ok || !valPdf.buffer || !valPdf.nombreSeguro) {
+        redirect(
+          `/admin/aeromarket?error=${encodeURIComponent(
+            `Catálogo PDF: ${valPdf.error || "Archivo PDF no válido."}`
+          )}`
+        );
+      }
+
+      const filename = `${Date.now()}-catalogo-${valPdf.nombreSeguro}`;
       try {
         await mkdir(uploadDir, { recursive: true });
       } catch (e) {}
-      await writeFile(path.join(uploadDir, filename), buffer);
+      await writeFile(path.join(uploadDir, filename), valPdf.buffer);
       catalogoUrl = `/uploads/aeromarket/${filename}`;
     }
 
@@ -102,33 +126,40 @@ export default async function AdminAeroMarket(props: {
     redirect("/admin/aeromarket?guardado=catalogo_eliminado");
   }
 
-  // ACCIÓN 3: Crear una nueva promoción
+  // ACCIÓN 3: Crear una nueva promoción (con validación estricta de imagen)
   async function crearPromo(formData: FormData) {
     "use server";
 
-    const titulo = formData.get("titulo") as string;
-    const descripcion = (formData.get("descripcion") as string) || "";
-    const categoria = (formData.get("categoria") as string) || "Combos";
-    const etiqueta = (formData.get("etiqueta") as string) || "";
-    const precio_promo = (formData.get("precio_promo") as string) || "";
-    const fechaFinRaw = (formData.get("fecha_fin") as string) || "";
-    const fecha_fin = fechaFinRaw.trim() !== "" ? fechaFinRaw : null;
-    const imagenFile = formData.get("imagen") as File;
+    const titulo = String(formData.get("titulo") || "").trim();
+    const descripcion = String(formData.get("descripcion") || "").trim();
+    const categoria = String(formData.get("categoria") || "Combos").trim();
+    const etiqueta = String(formData.get("etiqueta") || "").trim();
+    const precio_promo = String(formData.get("precio_promo") || "").trim();
+    const fechaFinRaw = String(formData.get("fecha_fin") || "").trim();
+    const fecha_fin = fechaFinRaw !== "" ? fechaFinRaw : null;
+    const imagenFile = formData.get("imagen") as File | null;
 
-    let imagenUrl = "";
+    const valImagen = await validarArchivoSubido(imagenFile, {
+      maxMB: 5,
+      tiposPermitidos: ["imagen"],
+      obligatorio: true,
+    });
 
-    if (imagenFile && imagenFile.size > 0) {
-      const bytes = await imagenFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const cleanName = imagenFile.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-      const filename = `${Date.now()}-promo-${cleanName}`;
-      const uploadDir = path.join(process.cwd(), "public/uploads/aeromarket");
-      try {
-        await mkdir(uploadDir, { recursive: true });
-      } catch (e) {}
-      await writeFile(path.join(uploadDir, filename), buffer);
-      imagenUrl = `/uploads/aeromarket/${filename}`;
+    if (!valImagen.ok || !valImagen.buffer || !valImagen.nombreSeguro) {
+      redirect(
+        `/admin/aeromarket?error=${encodeURIComponent(
+          `Imagen de promoción: ${valImagen.error || "Archivo no válido."}`
+        )}`
+      );
     }
+
+    const filename = `${Date.now()}-promo-${valImagen.nombreSeguro}`;
+    const uploadDir = path.join(process.cwd(), "public/uploads/aeromarket");
+    try {
+      await mkdir(uploadDir, { recursive: true });
+    } catch (e) {}
+    await writeFile(path.join(uploadDir, filename), valImagen.buffer);
+    const imagenUrl = `/uploads/aeromarket/${filename}`;
 
     await pool.query(
       `INSERT INTO aeromarket_promos 
@@ -177,12 +208,12 @@ export default async function AdminAeroMarket(props: {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gray-100 py-8 sm:py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* ENCABEZADO */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-lg bg-aerogas-red/10 text-aerogas-red flex items-center justify-center">
+            <div className="w-11 h-11 rounded-lg bg-aerogas-red/10 text-aerogas-red flex items-center justify-center shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -202,11 +233,11 @@ export default async function AdminAeroMarket(props: {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
             <Link
               href="/aeromarket"
               target="_blank"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-aerogas-blue font-semibold border border-blue-200 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-aerogas-blue font-semibold border border-blue-200 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -220,16 +251,32 @@ export default async function AdminAeroMarket(props: {
             </Link>
             <Link
               href="/admin"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-700 font-semibold border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-700 font-semibold border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
             >
               Volver al Panel
             </Link>
           </div>
         </div>
 
+        {/* ALERTA DE ERROR EN SUBIDA DE ARCHIVO */}
+        {errorMsg && (
+          <div
+            role="alert"
+            className="bg-red-50 border-l-4 border-aerogas-red p-4 rounded-r-lg shadow-sm flex items-center justify-between gap-4"
+          >
+            <p className="text-red-800 text-sm font-semibold">{errorMsg}</p>
+            <Link
+              href="/admin/aeromarket"
+              className="text-xs font-bold text-red-700 hover:underline shrink-0"
+            >
+              Cerrar
+            </Link>
+          </div>
+        )}
+
         {/* ALERTA DE CONFIRMACIÓN */}
         {guardado && (
-          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between">
+          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 text-green-800 text-sm font-semibold">
               <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
@@ -242,7 +289,7 @@ export default async function AdminAeroMarket(props: {
             </div>
             <Link
               href="/admin/aeromarket"
-              className="text-xs font-bold text-green-700 hover:underline"
+              className="text-xs font-bold text-green-700 hover:underline shrink-0"
             >
               Cerrar
             </Link>
@@ -250,7 +297,7 @@ export default async function AdminAeroMarket(props: {
         )}
 
         {/* BLOQUE 1: CONFIGURACIÓN DE PORTADA Y CATÁLOGO */}
-        <section className="bg-white rounded-xl shadow-md p-6 sm:p-8 border border-gray-200">
+        <section className="bg-white rounded-xl shadow-md p-5 sm:p-8 border border-gray-200">
           <h2 className="text-xl font-bold text-aerogas-blue mb-6 pb-3 border-b border-gray-200">
             1. Portada y Catálogo Digital
           </h2>
@@ -300,12 +347,12 @@ export default async function AdminAeroMarket(props: {
               {/* Subir Banner */}
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Imagen de Banner Principal (Opcional)
+                  Imagen de Banner Principal (Opcional — máx. 5 MB)
                 </label>
                 <input
                   type="file"
                   name="banner"
-                  accept="image/*"
+                  accept=".jpg,.jpeg,.png,.webp"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-aerogas-blue file:text-white hover:file:bg-blue-900 cursor-pointer"
                 />
                 {config.banner_url ? (
@@ -313,15 +360,15 @@ export default async function AdminAeroMarket(props: {
                     <img
                       src={config.banner_url}
                       alt="Banner actual"
-                      className="w-24 h-14 object-cover rounded border border-gray-300"
+                      className="w-24 h-14 object-cover rounded border border-gray-300 shrink-0"
                     />
                     <span className="text-xs text-gray-500">
-                      Banner activo actual. Sube una imagen nueva solo si deseas reemplazarlo.
+                      Banner activo actual (JPG, PNG o WEBP). Sube uno nuevo solo si deseas reemplazarlo.
                     </span>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-500 mt-2">
-                    Recomendado: imagen horizontal (ej. 1920x700 px) del interior o fachada del market.
+                    Formatos permitidos: JPG, PNG o WEBP (máx. 5 MB). Recomendado: 1920×700 px.
                   </p>
                 )}
               </div>
@@ -329,7 +376,7 @@ export default async function AdminAeroMarket(props: {
               {/* Subir Catálogo PDF */}
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Catálogo de Productos en PDF (Opcional)
+                  Catálogo de Productos en PDF (Opcional — máx. 10 MB)
                 </label>
                 <input
                   type="file"
@@ -347,11 +394,13 @@ export default async function AdminAeroMarket(props: {
                     >
                       Ver catálogo PDF actual
                     </a>
-                    <span className="text-xs text-green-600 font-semibold">Activo</span>
+                    <span className="text-xs text-green-600 font-semibold shrink-0">
+                      Activo
+                    </span>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-500 mt-2">
-                    Si no subes un PDF, el botón de catálogo permanecerá oculto automáticamente en la web.
+                    Solo formato PDF (máx. 10 MB). Si no subes uno, el botón queda oculto en la web.
                   </p>
                 )}
               </div>
@@ -360,14 +409,13 @@ export default async function AdminAeroMarket(props: {
             <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
               <button
                 type="submit"
-                className="bg-aerogas-blue hover:bg-blue-900 text-white font-bold px-6 py-3 rounded-lg transition-colors shadow-md cursor-pointer"
+                className="w-full sm:w-auto bg-aerogas-blue hover:bg-blue-900 text-white font-bold px-6 py-3 rounded-lg transition-colors shadow-md cursor-pointer"
               >
                 Guardar Configuración
               </button>
             </div>
           </form>
 
-          {/* Botón separado para retirar catálogo PDF si existe */}
           {config.catalogo_pdf_url && (
             <form action={quitarCatalogo} className="mt-4 pt-4 border-t border-gray-100">
               <button
@@ -383,7 +431,7 @@ export default async function AdminAeroMarket(props: {
         {/* BLOQUE 2: GESTOR DE PROMOCIONES */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* FORMULARIO NUEVA PROMOCIÓN */}
-          <div className="lg:col-span-1 bg-white rounded-xl shadow-md p-6 border border-gray-200 lg:sticky lg:top-6">
+          <div className="lg:col-span-1 bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-200 lg:sticky lg:top-6">
             <h2 className="text-xl font-bold text-aerogas-red mb-5 pb-3 border-b border-gray-200">
               2. Nueva Promoción
             </h2>
@@ -402,7 +450,7 @@ export default async function AdminAeroMarket(props: {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
                     Categoría *
@@ -434,7 +482,7 @@ export default async function AdminAeroMarket(props: {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
                     Precio (Opcional)
@@ -473,15 +521,18 @@ export default async function AdminAeroMarket(props: {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Imagen / Flyer de la Promo *
+                  Imagen / Flyer de la Promo * (máx. 5 MB)
                 </label>
                 <input
                   type="file"
                   name="imagen"
-                  accept="image/*"
+                  accept=".jpg,.jpeg,.png,.webp"
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-aerogas-blue file:text-white hover:file:bg-blue-900 cursor-pointer"
                 />
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Solo JPG, PNG o WEBP hasta 5 MB.
+                </p>
               </div>
 
               <button
@@ -495,11 +546,11 @@ export default async function AdminAeroMarket(props: {
 
           {/* LISTA DE PROMOCIONES EXISTENTES */}
           <div className="lg:col-span-2 bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-aerogas-blue">
+            <div className="p-5 sm:p-6 border-b border-gray-200 flex justify-between items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-aerogas-blue">
                 Promociones Registradas ({promos.length})
               </h2>
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs font-semibold text-gray-500 shrink-0">
                 Activas: {promos.filter((p) => p.activo === 1).length}
               </span>
             </div>
@@ -526,10 +577,14 @@ export default async function AdminAeroMarket(props: {
                   {promos.map((promo) => (
                     <tr
                       key={promo.id}
-                      className={promo.activo === 1 ? "hover:bg-gray-50" : "bg-gray-50/70 opacity-75"}
+                      className={
+                        promo.activo === 1
+                          ? "hover:bg-gray-50"
+                          : "bg-gray-50/70 opacity-75"
+                      }
                     >
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-[200px]">
                           <img
                             src={promo.imagen_url}
                             alt={promo.titulo}
@@ -553,7 +608,7 @@ export default async function AdminAeroMarket(props: {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-xs text-gray-600 space-y-1">
+                      <td className="px-5 py-4 text-xs text-gray-600 space-y-1 whitespace-nowrap">
                         {promo.precio_promo && (
                           <p className="font-extrabold text-aerogas-blue text-sm">
                             {promo.precio_promo}
@@ -575,7 +630,7 @@ export default async function AdminAeroMarket(props: {
                         )}
                       </td>
 
-                      <td className="px-5 py-4 text-center">
+                      <td className="px-5 py-4 text-center whitespace-nowrap">
                         <span
                           className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${
                             promo.activo === 1
@@ -587,7 +642,7 @@ export default async function AdminAeroMarket(props: {
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 text-center">
+                      <td className="px-5 py-4 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           <form action={cambiarEstadoPromo}>
                             <input type="hidden" name="id" value={promo.id} />

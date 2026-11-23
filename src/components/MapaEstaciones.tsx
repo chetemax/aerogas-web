@@ -127,7 +127,7 @@ export default function MapaEstaciones({
 
   if (!isMounted || !leafletLib || !reactLeaflet) {
     return (
-      <div className="w-full h-[500px] bg-gray-100 animate-pulse rounded-2xl flex items-center justify-center border border-gray-200">
+      <div className="w-full h-[360px] sm:h-[440px] lg:h-[500px] bg-gray-100 animate-pulse rounded-2xl flex items-center justify-center border border-gray-200">
         <p className="text-gray-500 font-bold">Cargando mapa interactivo...</p>
       </div>
     );
@@ -135,7 +135,7 @@ export default function MapaEstaciones({
 
   if (estacionesEnMapa.length === 0) {
     return (
-      <div className="w-full h-[380px] bg-gray-100 rounded-2xl flex items-center justify-center border border-gray-200 px-4 text-center">
+      <div className="w-full h-[360px] sm:h-[380px] bg-gray-100 rounded-2xl flex items-center justify-center border border-gray-200 px-4 text-center">
         <p className="text-gray-500 font-medium">
           No hay estaciones con coordenadas registradas para los filtros seleccionados.
         </p>
@@ -181,7 +181,7 @@ export default function MapaEstaciones({
       .join("|");
 
   return (
-    <div className="w-full h-[500px] rounded-2xl overflow-hidden shadow-lg border border-gray-200 relative z-0">
+    <div className="w-full h-[360px] sm:h-[440px] lg:h-[500px] rounded-2xl overflow-hidden shadow-lg border border-gray-200 relative z-0">
       <MapContainer
         center={[centroLat, centroLon]}
         zoom={12}

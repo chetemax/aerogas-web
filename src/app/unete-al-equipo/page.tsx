@@ -8,6 +8,13 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Únete al Equipo — Trabaja con Nosotros",
+  description:
+    "Postula en línea a Aerogas del Norte S.A.C. y AeroMarket. Envía tu CV para puestos en estaciones de servicio, flota cisterna y áreas administrativas.",
+};
 
 export default async function UneteAlEquipo(props: {
   searchParams: Promise<{ exito?: string; error?: string }>;

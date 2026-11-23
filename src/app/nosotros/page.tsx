@@ -3,7 +3,13 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import BotonWhatsApp from "../../components/BotonWhatsApp";
 import { pool } from "../../lib/db";
+import type { Metadata } from "next";
 
+export const metadata: Metadata = {
+  title: "Nosotros — Red de Estaciones y Soluciones B2B",
+  description:
+    "Conoce a Aerogas del Norte S.A.C.: más de 20 estaciones, flota cisterna propia, galonaje exacto y cumplimiento OSINERGMIN en el norte del Perú.",
+};
 export const dynamic = "force-dynamic";
 
 export default async function NosotrosPage() {

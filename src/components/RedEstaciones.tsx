@@ -180,10 +180,12 @@ export default function RedEstaciones({
     );
   }, [ubicacionUsuario, estacionesProcesadas]);
 
-  // 4. Paginación
+  // 4. Paginación segura
   const totalEstaciones = estacionesProcesadas.length;
   const totalPaginas = Math.ceil(totalEstaciones / ESTACIONES_POR_PAGINA);
-  const indiceInicio = (paginaActual - 1) * ESTACIONES_POR_PAGINA;
+  const paginaSegura =
+    totalPaginas > 0 ? Math.min(paginaActual, totalPaginas) : 1;
+  const indiceInicio = (paginaSegura - 1) * ESTACIONES_POR_PAGINA;
   const indiceFin = Math.min(
     indiceInicio + ESTACIONES_POR_PAGINA,
     totalEstaciones
@@ -281,10 +283,10 @@ export default function RedEstaciones({
   return (
     <div>
       {/* PANEL DE FILTROS INTELIGENTES */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-6 mb-8 space-y-5">
+      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-6 mb-8 space-y-5">
         {/* FILA 1: FILTRO POR CIUDAD + BOTÓN GPS */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <span className="text-xs font-extrabold uppercase tracking-wider text-gray-500 mr-1">
               Ciudad:
             </span>
@@ -292,7 +294,7 @@ export default function RedEstaciones({
             <button
               type="button"
               onClick={() => handleCambiarCiudad("Todas")}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
+              className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
                 ciudadSeleccionada === "Todas"
                   ? "bg-aerogas-blue text-white border-aerogas-blue shadow-sm"
                   : "bg-white text-gray-700 border-gray-300 hover:border-aerogas-blue hover:text-aerogas-blue"
@@ -319,7 +321,7 @@ export default function RedEstaciones({
                   key={ciudad.nombre}
                   type="button"
                   onClick={() => handleCambiarCiudad(ciudad.nombre)}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
+                  className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
                     activo
                       ? "bg-aerogas-blue text-white border-aerogas-blue shadow-sm"
                       : "bg-white text-gray-700 border-gray-300 hover:border-aerogas-blue hover:text-aerogas-blue"
@@ -341,12 +343,12 @@ export default function RedEstaciones({
           </div>
 
           {/* BOTÓN GEOLOCALIZACIÓN "ESTACIÓN MÁS CERCANA" */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0 w-full lg:w-auto">
             <button
               type="button"
               onClick={handleBuscarMasCercana}
               disabled={buscandoGps}
-              className="inline-flex items-center justify-center gap-2 bg-aerogas-red hover:bg-red-700 disabled:bg-gray-400 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-md transition-all cursor-pointer disabled:cursor-wait w-full sm:w-auto"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-aerogas-red hover:bg-red-700 disabled:bg-gray-400 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-md transition-all cursor-pointer disabled:cursor-wait"
             >
               {buscandoGps ? (
                 <>
@@ -394,9 +396,12 @@ export default function RedEstaciones({
             {ubicacionUsuario && (
               <button
                 type="button"
-                onClick={() => setUbicacionUsuario(null)}
+                onClick={() => {
+                  setUbicacionUsuario(null);
+                  setPaginaActual(1);
+                }}
                 title="Desactivar orden por ubicación GPS"
-                className="px-3 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 cursor-pointer"
+                className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 cursor-pointer shrink-0"
               >
                 Quitar GPS
               </button>
@@ -529,7 +534,7 @@ export default function RedEstaciones({
       {/* ENCABEZADO DE CONTEO SOBRE LAS TARJETAS */}
       <div
         ref={gridRef}
-        className="flex flex-col sm:flex-row justify-between items-center mb-6 pb-4 border-b border-gray-200 gap-2"
+        className="flex flex-col sm:flex-row justify-between items-center mb-6 pb-4 border-b border-gray-200 gap-2 text-center sm:text-left"
       >
         <p className="text-sm text-gray-600 font-medium">
           Mostrando{" "}
@@ -567,7 +572,7 @@ export default function RedEstaciones({
 
         {totalPaginas > 1 && (
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Página {paginaActual} de {totalPaginas}
+            Página {paginaSegura} de {totalPaginas}
           </p>
         )}
       </div>
@@ -689,18 +694,18 @@ export default function RedEstaciones({
         </div>
       )}
 
-      {/* BARRA DE PAGINACIÓN CORPORATIVA */}
+      {/* BARRA DE PAGINACIÓN CORPORATIVA RESPONSIVA */}
       {totalPaginas > 1 && (
         <div className="mt-12 flex flex-col items-center gap-4">
           <nav
             aria-label="Paginación de estaciones"
-            className="inline-flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200 shadow-sm"
+            className="inline-flex flex-wrap justify-center items-center gap-2 max-w-full bg-gray-50 p-2 rounded-xl border border-gray-200 shadow-sm"
           >
             <button
               type="button"
-              onClick={() => handleCambiarPagina(paginaActual - 1)}
-              disabled={paginaActual === 1}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-aerogas-blue bg-white border border-gray-200 hover:bg-aerogas-blue hover:text-white disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-aerogas-blue disabled:cursor-not-allowed transition-colors cursor-pointer"
+              onClick={() => handleCambiarPagina(paginaSegura - 1)}
+              disabled={paginaSegura === 1}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-bold text-aerogas-blue bg-white border border-gray-200 hover:bg-aerogas-blue hover:text-white disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-aerogas-blue disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               <svg
                 className="w-4 h-4"
@@ -718,15 +723,15 @@ export default function RedEstaciones({
               <span className="hidden sm:inline">Anterior</span>
             </button>
 
-            <div className="flex items-center gap-1.5 px-1">
+            <div className="flex flex-wrap justify-center items-center gap-1.5 px-1">
               {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(
                 (num) => (
                   <button
                     key={num}
                     type="button"
                     onClick={() => handleCambiarPagina(num)}
-                    className={`w-10 h-10 rounded-lg text-sm font-bold transition-all cursor-pointer ${
-                      paginaActual === num
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+                      paginaSegura === num
                         ? "bg-aerogas-red text-white shadow-md scale-105"
                         : "bg-white text-gray-700 border border-gray-200 hover:border-aerogas-blue hover:text-aerogas-blue"
                     }`}
@@ -739,9 +744,9 @@ export default function RedEstaciones({
 
             <button
               type="button"
-              onClick={() => handleCambiarPagina(paginaActual + 1)}
-              disabled={paginaActual === totalPaginas}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-aerogas-blue bg-white border border-gray-200 hover:bg-aerogas-blue hover:text-white disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-aerogas-blue disabled:cursor-not-allowed transition-colors cursor-pointer"
+              onClick={() => handleCambiarPagina(paginaSegura + 1)}
+              disabled={paginaSegura === totalPaginas}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-bold text-aerogas-blue bg-white border border-gray-200 hover:bg-aerogas-blue hover:text-white disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-aerogas-blue disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               <span className="hidden sm:inline">Siguiente</span>
               <svg

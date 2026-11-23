@@ -7,6 +7,14 @@ import {
   formatearFechaPE,
 } from "../../lib/diasHabiles";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Libro de Reclamaciones Virtual",
+  description:
+    "Libro de Reclamaciones Virtual de Aerogas del Norte S.A.C. conforme a la Ley N° 29571 (INDECOPI) con constancia inmediata.",
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function LibroReclamacionesPage() {

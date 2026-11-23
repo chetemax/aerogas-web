@@ -2,6 +2,13 @@ import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import BotonWhatsApp from "../../components/BotonWhatsApp";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Política de Privacidad",
+  description:
+    "Política de Privacidad y tratamiento de datos personales de Aerogas del Norte S.A.C. conforme a la Ley N° 29733.",
+};
 
 export default function PoliticaPrivacidadPage() {
   return (
